@@ -1,0 +1,3 @@
+[submodule "testing_repo_cpp"]
+	url = https://gitlab.com/hsse_manager/testing_repo_cpp.git
+	path = testing_repo
