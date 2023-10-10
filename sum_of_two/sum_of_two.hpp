@@ -1,3 +1,1 @@
-int SumOfTwo(int a, int b) { 
-	// тут решение 
-}
+int SumOfTwo(int first, int second) { return first + second; }
