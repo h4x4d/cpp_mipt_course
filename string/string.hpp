@@ -8,8 +8,6 @@ class String {
 
   String(unsigned size, char character);
 
-  String(const char* string, int size, int capacity);
-
   String(const char* string);
 
   String(const String& string);
@@ -35,9 +33,9 @@ class String {
 
   bool Empty() const;
 
-  unsigned Size() const;
+  size_t Size() const;
 
-  unsigned Capacity() const;
+  size_t Capacity() const;
 
   char* Data();
 
@@ -49,11 +47,11 @@ class String {
 
   void PopBack();
 
-  void Resize(unsigned new_size);
+  void Resize(size_t new_size);
 
-  void Resize(unsigned new_size, char character);
+  void Resize(size_t new_size, char character);
 
-  void Reserve(unsigned new_cap);
+  void Reserve(size_t new_cap);
 
   void ShrinkToFit();
 
@@ -68,10 +66,12 @@ class String {
   ~String();
 
  private:
-  void ChangeCapacity(unsigned new_capacity);
+  String(const char* string, int size, int capacity);
 
-  unsigned size_ = 0;
-  unsigned capacity_ = 0;
+  void ChangeCapacity(size_t new_capacity);
+
+  size_t size_ = 0;
+  size_t capacity_ = 0;
   char* string_ = nullptr;
 };
 

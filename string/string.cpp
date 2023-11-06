@@ -25,9 +25,9 @@ String::String(const String& string)
 
 bool String::Empty() const { return size_ == 0; }
 
-unsigned String::Size() const { return size_; }
+size_t String::Size() const { return size_; }
 
-unsigned String::Capacity() const { return capacity_; }
+size_t String::Capacity() const { return capacity_; }
 
 char* String::Data() { return string_; }
 
@@ -51,7 +51,7 @@ String& String::operator=(const String& other) {
   return *this;
 }
 
-void String::ChangeCapacity(unsigned new_capacity) {
+void String::ChangeCapacity(size_t new_capacity) {
   char* new_string = new char[new_capacity];
   if (new_capacity < size_) {
     std::copy(string_, string_ + new_capacity, new_string);
@@ -78,14 +78,14 @@ void String::PopBack() {
   }
 }
 
-void String::Resize(unsigned new_size) {
+void String::Resize(size_t new_size) {
   if (new_size > capacity_) {
     ChangeCapacity(new_size);
   }
   size_ = new_size;
 }
 
-void String::Resize(unsigned new_size, char character) {
+void String::Resize(size_t new_size, char character) {
   if (new_size > capacity_) {
     ChangeCapacity(new_size);
   }
@@ -95,7 +95,7 @@ void String::Resize(unsigned new_size, char character) {
   size_ = new_size;
 }
 
-void String::Reserve(unsigned new_cap) {
+void String::Reserve(size_t new_cap) {
   if (new_cap > capacity_) {
     ChangeCapacity(new_cap);
   }
