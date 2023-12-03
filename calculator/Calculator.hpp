@@ -1,6 +1,4 @@
 #pragma once
-#include <deque>
-#include <string>
 
 #include "ExprInPolishNotation.hpp"
 #include "OperandToken.hpp"

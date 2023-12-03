@@ -1,5 +1,6 @@
 #pragma once
 #include <deque>
+#include <list>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -11,9 +12,17 @@
 #include "OperatorToken.hpp"
 
 namespace tokens {
-std::unordered_map<std::string, int> priorities{
+const std::unordered_map<std::string, int> kPriorities{
     {"+", 1}, {"-", 1}, {"*", 2}, {"/", 2}, {"(", -1}, {")", -2},
 };
+}
+
+int GetPriority(const std::string& token) {
+  int priority = 0;
+  if (tokens::kPriorities.contains(token)) {
+    priority = tokens::kPriorities.at(token);
+  }
+  return priority;
 }
 
 template <typename T>
@@ -24,14 +33,14 @@ class ExprInPolishNotation {
   const std::vector<AbstractToken*>& GetTokens() { return tokens_; };
 
  private:
-  void RemoveSpaces(std::vector<char>& tokens);
+  void RemoveSpaces(std::list<char>& tokens);
 
   void PushNumber(std::string& number_string);
 
   void PostProcess(std::deque<AbstractToken*>& waiting_operations);
 
-  void ProcessOperator(size_t index, std::vector<char>& tokens,
-                       std::string& now, int priority,
+  void ProcessOperator(std::list<char>::iterator iter, std::string& now,
+                       int priority,
                        std::deque<AbstractToken*>& waiting_operations);
 
   void ProcessBracket(std::string& now, int priority,
@@ -88,21 +97,21 @@ void ExprInPolishNotation<T>::ProcessBracket(
 }
 template <typename T>
 void ExprInPolishNotation<T>::ProcessOperator(
-    size_t index, std::vector<char>& tokens, std::string& now, int priority,
+    std::list<char>::iterator iter, std::string& now, int priority,
     std::deque<AbstractToken*>& waiting_operations) {
   AbstractToken* operation;
-  if (tokens::priorities[std::string(1, tokens[index + 1])] > 0 ||
-      tokens::priorities[std::string(1, tokens[index + 1])] == -1) {
+  if (GetPriority(std::string(1, *++iter)) > 0 ||
+      GetPriority(std::string(1, *iter)) == -1) {
     operation = new OperatorToken<T, false>(now);
     priority += 2;
   } else {
     operation = new OperatorToken<T, true>(now);
   }
 
-  while (!waiting_operations.empty() &&
-         ((dynamic_cast<OperatorToken<T, false>*>(waiting_operations.back())) ||
-          (tokens::priorities[waiting_operations.back()->GetStringToken()] >
-           priority))) {
+  while (
+      !waiting_operations.empty() &&
+      ((dynamic_cast<OperatorToken<T, false>*>(waiting_operations.back())) ||
+       (GetPriority(waiting_operations.back()->GetStringToken()) > priority))) {
     tokens_.push_back(waiting_operations.back());
     waiting_operations.pop_back();
   }
@@ -110,11 +119,10 @@ void ExprInPolishNotation<T>::ProcessOperator(
 }
 
 template <typename T>
-void ExprInPolishNotation<T>::RemoveSpaces(std::vector<char>& tokens) {
-  for (size_t i = 0; i < tokens.size(); ++i) {
-    if (tokens[i] == ' ') {
-      tokens.erase(tokens.begin() + i);
-      --i;
+void ExprInPolishNotation<T>::RemoveSpaces(std::list<char>& tokens) {
+  for (auto token_it = tokens.begin(); token_it != tokens.end(); ++token_it) {
+    if ((*token_it) == ' ') {
+      tokens.erase(token_it++);
     }
   }
 }
@@ -123,15 +131,15 @@ template <typename T>
 ExprInPolishNotation<T>::ExprInPolishNotation(
     const std::string& tokens_string) {
   std::string number_string;
-  std::vector<char> tokens(tokens_string.begin(), tokens_string.end());
+  std::list<char> tokens(tokens_string.begin(), tokens_string.end());
   std::reverse(tokens.begin(), tokens.end());
   std::deque<AbstractToken*> waiting_operations;
 
   RemoveSpaces(tokens);
 
-  for (size_t i = 0; i < tokens.size(); ++i) {
-    std::string now(1, tokens[i]);
-    int priority = tokens::priorities[now];
+  for (auto token_it = tokens.begin(); token_it != tokens.end(); ++token_it) {
+    std::string now(1, *token_it);
+    int priority = GetPriority(now);
 
     if (priority == 0) {
       number_string += now;
@@ -140,7 +148,7 @@ ExprInPolishNotation<T>::ExprInPolishNotation(
     PushNumber(number_string);
 
     if (priority > 0) {
-      ProcessOperator(i, tokens, now, priority, waiting_operations);
+      ProcessOperator(token_it, now, priority, waiting_operations);
     } else {
       ProcessBracket(now, priority, waiting_operations);
     }
