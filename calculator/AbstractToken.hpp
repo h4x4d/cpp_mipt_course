@@ -3,7 +3,7 @@
 
 class AbstractToken {
  public:
-  AbstractToken(const std::string& token): token_(token) {};
+  AbstractToken(const std::string& token) : token_(token){};
 
   const std::string& GetStringToken() const { return token_; };
 
