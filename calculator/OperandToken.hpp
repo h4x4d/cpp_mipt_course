@@ -1,6 +1,5 @@
 #pragma once
 #include <sstream>
-#include <string>
 
 #include "AbstractToken.hpp"
 
@@ -19,7 +18,7 @@ class OperandToken : public AbstractToken {
 
 template <typename T>
 OperandToken<T>::OperandToken(const T& value)
-    : operand_(value), AbstractToken("") {
+    : AbstractToken(""), operand_(value) {
   std::stringstream string_stream;
   string_stream << value;
   UpdateStringToken(string_stream.str());

@@ -1,6 +1,5 @@
 #pragma once
 #include <sstream>
-#include <string>
 #include <unordered_map>
 
 #include "AbstractToken.hpp"
@@ -24,7 +23,7 @@ template <typename T, bool Binary>
 class OperatorToken : public AbstractToken {
  public:
   OperatorToken(const std::string& token)
-      : operation_(token), AbstractToken(token){};
+      : AbstractToken(token), operation_(token){};
 
   OperandToken<T>* Calculate(OperandToken<T>* lhs, OperandToken<T>* rhs);
 
@@ -38,7 +37,7 @@ class OperatorToken : public AbstractToken {
 template <typename T, bool Binary>
 OperandToken<T>* OperatorToken<T, Binary>::Calculate(OperandToken<T>* operand) {
   static_assert(!Binary);
-  auto ans = new OperandToken(
+  auto* ans = new OperandToken(
       operations::kUnaryOperations<T>.at(operation_)(operand->GetValue()));
   return ans;
 }
@@ -46,7 +45,7 @@ template <typename T, bool Binary>
 OperandToken<T>* OperatorToken<T, Binary>::Calculate(OperandToken<T>* lhs,
                                                      OperandToken<T>* rhs) {
   static_assert(Binary);
-  auto ans = new OperandToken(operations::kBinaryOperations<T>.at(operation_)(
+  auto* ans = new OperandToken(operations::kBinaryOperations<T>.at(operation_)(
       lhs->GetValue(), rhs->GetValue()));
   return ans;
 }

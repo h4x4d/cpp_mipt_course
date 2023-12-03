@@ -1,6 +1,4 @@
 #pragma once
-#include <string>
-
 #include "AbstractToken.hpp"
 
 class BracketToken : public AbstractToken {
