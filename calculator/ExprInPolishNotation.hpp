@@ -122,7 +122,7 @@ template <typename T>
 void ExprInPolishNotation<T>::RemoveSpaces(std::list<char>& tokens) {
   for (auto token_it = tokens.begin(); token_it != tokens.end(); ++token_it) {
     if ((*token_it) == ' ') {
-      tokens.erase(token_it++);
+      token_it = --tokens.erase(token_it);
     }
   }
 }
