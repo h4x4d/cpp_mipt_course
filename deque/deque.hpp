@@ -14,15 +14,14 @@ class Deque {
    public:
     using iterator_category = std::random_access_iterator_tag;
     using difference_type = size_t;
-    using cond_type = std::conditional_t<IsConst, const T, T>;
-    using value_type = cond_type;
-    using pointer = cond_type*;
-    using reference = cond_type&;
+    using value_type = std::conditional_t<IsConst, const T, T>;
+    using pointer = value_type*;
+    using reference = value_type&;
 
-    BasicIterator(Deque& deque, size_t index) : deque_(deque), index_(index){};
+    BasicIterator(Deque& deque, size_t index) : deque_(deque), index_(index) {};
 
     BasicIterator(const BasicIterator& iterator)
-        : deque_(iterator.deque_), index_(iterator.index_){};
+        : deque_(iterator.deque_), index_(iterator.index_) {};
 
     BasicIterator& operator=(const BasicIterator& iterator) {
       deque_ = iterator.deque_;
@@ -30,13 +29,11 @@ class Deque {
       return (*this);
     };
 
-    operator BasicIterator<true>() const {
-      return const_iterator(deque_, index_);
+    reference operator*() const {
+      return *(deque_.buckets_[index_ / kBucketSize] + (index_ % kBucketSize));
     }
 
-    reference operator*() const { return deque_[index_]; }
-
-    pointer operator->() const { return &(deque_[index_]); }
+    pointer operator->() const { return &(operator*()); }
 
     BasicIterator& operator-=(int n) {
       index_ -= n;
@@ -44,7 +41,7 @@ class Deque {
     }
 
     BasicIterator& operator+=(int n) {
-      index_ += n;
+      index_ = (index_ + n) % (deque_.buckets_amount_ * deque_.kBucketSize + 1);
       return *this;
     }
 
@@ -69,7 +66,7 @@ class Deque {
     }
 
     BasicIterator& operator++() {
-      ++index_;
+      index_ += 1;
       return *this;
     }
 
@@ -93,7 +90,7 @@ class Deque {
     }
 
     bool operator<(const BasicIterator& other) const {
-      return index_ < other.index_;
+      return get_relative() < other.get_relative();
     }
 
     bool operator>(const BasicIterator& other) const { return other < (*this); }
@@ -111,6 +108,10 @@ class Deque {
     }
 
    private:
+    size_t get_relative() const {
+      return (index_ - deque_.start_shift_ + deque_.buckets_amount_ * deque_.kBucketSize + 1)  % (deque_.buckets_amount_ * deque_.kBucketSize + 1);
+    }
+
     Deque& deque_;
     size_t index_;
   };
@@ -120,9 +121,9 @@ class Deque {
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-  Deque(){};
+  Deque() = default;
 
-  Deque(size_t count) : Deque(count, T()){};
+  explicit Deque(size_t count) : Deque(count, T()) {};
 
   Deque(size_t count, const T& value);
 
@@ -132,7 +133,7 @@ class Deque {
 
   size_t size() const { return size_; };
 
-  bool empty() { return size_ == 0; };
+  bool empty() const noexcept { return size_ == 0; };
 
   T& operator[](size_t index);
 
@@ -142,17 +143,17 @@ class Deque {
 
   const T& at(size_t index) const;
 
-  iterator begin() { return iterator(*this, 0); }
+  iterator begin() { return iterator(*this, start_shift_); }
 
-  const_iterator cbegin() { return const_iterator((*this), 0); }
+  const_iterator cbegin() { return const_iterator((*this), start_shift_); }
 
   reverse_iterator rbegin() { return reverse_iterator(end()); }
 
   const_reverse_iterator crbegin() { return const_reverse_iterator(cend()); }
 
-  iterator end() { return iterator((*this), size_); }
+  iterator end() { return iterator((*this), (start_shift_ + size_) % (kBucketSize * buckets_amount_ + 1)); }
 
-  const_iterator cend() { return const_iterator((*this), size_); }
+  const_iterator cend() { return const_iterator((*this), (start_shift_ + size_) % (kBucketSize * buckets_amount_ + 1)); }
 
   reverse_iterator rend() { return reverse_iterator(begin()); }
 
@@ -162,26 +163,13 @@ class Deque {
 
   void push_front(const T& value);
 
-  void pop_back() { --size_; }
+  void pop_back();
 
   void pop_front();
 
-  void insert(iterator iter, const T& value) {
-    T last_value = value;
-    while (iter != end()) {
-      std::swap(last_value, *iter);
-      iter++;
-    }
-    push_back(last_value);
-  }
+  void insert(iterator iter, const T& value);
 
-  void erase(iterator iter) {
-    while ((iter + 1) != end()) {
-      *iter = *(iter + 1);
-      iter++;
-    }
-    pop_back();
-  }
+  void erase(iterator iter);
 
   ~Deque() { clear_buckets(); }
 
@@ -190,6 +178,8 @@ class Deque {
   using bucket = T*;
 
   void clear_buckets();
+
+  void swap(Deque<T>& other);
 
   void reallocate_buckets();
 
@@ -211,7 +201,32 @@ class Deque {
 };
 
 template <typename T>
+void Deque<T>::pop_back() {
+  operator[](size() - 1).~T();
+  --size_;
+}
+
+template <typename T>
+void Deque<T>::erase(Deque::iterator iter) {
+  for (; iter + 1 != end(); ++iter) {
+    *iter = *(iter + 1);
+  }
+  pop_back();
+}
+
+template <typename T>
+void Deque<T>::insert(Deque::iterator iter, const T& value) {
+  T last_value = value;
+  while (iter != end()) {
+    std::swap(last_value, *iter);
+    iter++;
+  }
+  push_back(last_value);
+}
+
+template <typename T>
 void Deque<T>::pop_front() {
+  operator[](start_shift_).~T();
   start_shift_ = (start_shift_ + 1) % (kBucketSize * buckets_amount_);
   --size_;
 }
@@ -229,10 +244,9 @@ void Deque<T>::push_front(const T& value) {
   if (buckets_[bucket] == nullptr) {
     init_bucket(bucket);
   }
-
+  new(&operator[](-1)) T(value);
   start_shift_ = absolute_index;
   size_++;
-  *(buckets_[bucket] + local_index) = value;
 }
 
 template <typename T>
@@ -249,11 +263,7 @@ void Deque<T>::push_back(const T& value) {
     init_bucket(bucket);
   }
 
-  try {
-    *(buckets_[bucket] + local_index) = T(value);
-  } catch (...) {
-    throw;
-  }
+  new(&operator[](size())) T(value);
   size_++;
 }
 
@@ -294,44 +304,37 @@ template <typename T>
 void Deque<T>::init_any_bucket(size_t bucket_index,
                                std::vector<bucket>& buckets) {
   if (buckets[bucket_index] == nullptr) {
-    buckets_[bucket_index] =
-        reinterpret_cast<T*>(new int8_t[sizeof(T) * kBucketSize]);
+    buckets[bucket_index] =
+        reinterpret_cast<T*>(new std::byte[sizeof(T) * kBucketSize]);
   }
 }
 
 template <typename T>
 void Deque<T>::clear_buckets() {
   for (size_t i = 0; i < buckets_amount_; ++i) {
-    auto source =
-        reinterpret_cast<std::array<int8_t, sizeof(T) * kBucketSize>*>(
-            buckets_[i]);
-    buckets_[i] = nullptr;
-    delete[] source;
+    if (buckets_[i] != nullptr) {
+      auto source = reinterpret_cast<std::byte*>(buckets_[i]);
+      delete[] source;
+      buckets_[i] = nullptr;
+    }
   }
 }
 
 template <typename T>
+void Deque<T>::swap(Deque& other) {
+  std::swap(size_, other.size_);
+  std::swap(start_shift_, other.start_shift_);
+  std::swap(buckets_amount_, other.buckets_amount_);
+  std::swap(buckets_, other.buckets_);
+}
+
+template <typename T>
 Deque<T>& Deque<T>::operator=(const Deque& other) {
-  if (this == &other) {
+  if ((this) == &other) {
     return *this;
   }
-  clear_buckets();
-
-  size_ = other.size_;
-  start_shift_ = other.start_shift_;
-  buckets_amount_ = other.buckets_amount_;
-  buckets_ = std::vector<bucket>(buckets_amount_);
-
-  for (size_t i = 0; i < buckets_amount_; ++i) {
-    if (other.buckets_[i] != nullptr) {
-      init_bucket(i);
-      std::copy(other.buckets_[i], other.buckets_[i] + kBucketSize,
-                buckets_[i]);
-    } else {
-      buckets_[i] = nullptr;
-    }
-  }
-
+  Deque<T> tmp(other);
+  swap(tmp);
   return (*this);
 }
 
