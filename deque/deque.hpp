@@ -9,112 +9,8 @@
 template <typename T>
 class Deque {
  public:
-  template <bool IsConst = false>
-  class BasicIterator {
-   public:
-    using iterator_category = std::random_access_iterator_tag;
-    using difference_type = size_t;
-    using value_type = std::conditional_t<IsConst, const T, T>;
-    using pointer = value_type*;
-    using reference = value_type&;
-
-    BasicIterator(Deque& deque, size_t index) : deque_(deque), index_(index) {};
-
-    BasicIterator(const BasicIterator& iterator)
-        : deque_(iterator.deque_), index_(iterator.index_) {};
-
-    BasicIterator& operator=(const BasicIterator& iterator) {
-      deque_ = iterator.deque_;
-      index_ = iterator.index_;
-      return (*this);
-    };
-
-    reference operator*() const {
-      return *(deque_.buckets_[index_ / kBucketSize] + (index_ % kBucketSize));
-    }
-
-    pointer operator->() const { return &(operator*()); }
-
-    BasicIterator& operator-=(int n) {
-      index_ -= n;
-      return *this;
-    }
-
-    BasicIterator& operator+=(int n) {
-      index_ = (index_ + n) % (deque_.buckets_amount_ * deque_.kBucketSize + 1);
-      return *this;
-    }
-
-    BasicIterator operator-(int n) const {
-      auto copy = *this;
-      copy -= n;
-
-      return copy;
-    }
-
-    BasicIterator operator+(int n) const {
-      auto copy = *this;
-      copy += n;
-
-      return copy;
-    }
-
-    BasicIterator operator++(int) {
-      iterator tmp = *this;
-      ++(*this);
-      return tmp;
-    }
-
-    BasicIterator& operator++() {
-      index_ += 1;
-      return *this;
-    }
-
-    BasicIterator operator--(int) {
-      iterator tmp = *this;
-      --(*this);
-      return tmp;
-    }
-
-    BasicIterator& operator--() {
-      --index_;
-      return *this;
-    }
-
-    bool operator==(const BasicIterator& other) const {
-      return index_ == other.index_;
-    }
-
-    bool operator!=(const BasicIterator& other) const {
-      return !((*this) == other);
-    }
-
-    bool operator<(const BasicIterator& other) const {
-      return get_relative() < other.get_relative();
-    }
-
-    bool operator>(const BasicIterator& other) const { return other < (*this); }
-
-    bool operator>=(const BasicIterator& other) const {
-      return !(other > (*this));
-    }
-
-    bool operator<=(const BasicIterator& other) const {
-      return !(other < (*this));
-    }
-
-    difference_type operator-(BasicIterator other) {
-      return index_ - other.index_;
-    }
-
-   private:
-    size_t get_relative() const {
-      return (index_ - deque_.start_shift_ + deque_.buckets_amount_ * deque_.kBucketSize + 1)  % (deque_.buckets_amount_ * deque_.kBucketSize + 1);
-    }
-
-    Deque& deque_;
-    size_t index_;
-  };
+  template <bool IsConst>
+  class BasicIterator;
 
   using iterator = BasicIterator<false>;
   using const_iterator = BasicIterator<true>;
@@ -123,7 +19,7 @@ class Deque {
 
   Deque() = default;
 
-  explicit Deque(size_t count) : Deque(count, T()) {};
+  explicit Deque(size_t count) : Deque(count, T()){};
 
   Deque(size_t count, const T& value);
 
@@ -151,9 +47,15 @@ class Deque {
 
   const_reverse_iterator crbegin() { return const_reverse_iterator(cend()); }
 
-  iterator end() { return iterator((*this), (start_shift_ + size_) % (kBucketSize * buckets_amount_ + 1)); }
+  iterator end() {
+    return iterator(
+        (*this), (start_shift_ + size_) % (kBucketSize * buckets_amount_ + 1));
+  }
 
-  const_iterator cend() { return const_iterator((*this), (start_shift_ + size_) % (kBucketSize * buckets_amount_ + 1)); }
+  const_iterator cend() {
+    return const_iterator(
+        (*this), (start_shift_ + size_) % (kBucketSize * buckets_amount_ + 1));
+  }
 
   reverse_iterator rend() { return reverse_iterator(begin()); }
 
@@ -244,7 +146,7 @@ void Deque<T>::push_front(const T& value) {
   if (buckets_[bucket] == nullptr) {
     init_bucket(bucket);
   }
-  new(&operator[](-1)) T(value);
+  new (&operator[](-1)) T(value);
   start_shift_ = absolute_index;
   size_++;
 }
@@ -263,7 +165,7 @@ void Deque<T>::push_back(const T& value) {
     init_bucket(bucket);
   }
 
-  new(&operator[](size())) T(value);
+  new (&operator[](size())) T(value);
   size_++;
 }
 
@@ -313,7 +215,7 @@ template <typename T>
 void Deque<T>::clear_buckets() {
   for (size_t i = 0; i < buckets_amount_; ++i) {
     if (buckets_[i] != nullptr) {
-      auto source = reinterpret_cast<std::byte*>(buckets_[i]);
+      auto* source = reinterpret_cast<std::byte*>(buckets_[i]);
       delete[] source;
       buckets_[i] = nullptr;
     }
@@ -348,8 +250,12 @@ Deque<T>::Deque(const Deque& other)
   for (size_t i = 0; i < buckets_amount_; ++i) {
     if (other.buckets_[i] != nullptr) {
       init_bucket(i);
-      std::copy(other.buckets_[i], other.buckets_[i] + kBucketSize,
-                buckets_[i]);
+      try {
+        std::uninitialized_copy(other.buckets_[i],
+                                other.buckets_[i] + kBucketSize, buckets_[i]);
+      } catch (...) {
+        clear_buckets();
+      }
     } else {
       buckets_[i] = nullptr;
     }
@@ -380,6 +286,8 @@ T& Deque<T>::at(size_t index) {
     throw std::out_of_range(
         "Deque: out of range: index (which is " + std::to_string(index) +
         ") >= deque size (which is " + std::to_string(size()) + ")");
+    // std::format("Deque: out of range: index (which is '{}') >= deque size
+    // (which is '{}')", index, size()));
   }
   return operator[](index);
 }
@@ -390,6 +298,8 @@ const T& Deque<T>::at(size_t index) const {
     throw std::out_of_range(
         "Deque: out of range: index (which is " + std::to_string(index) +
         ") >= deque size (which is " + std::to_string(size()) + ")");
+    // std::format("Deque: out of range: index (which is '{}') >= deque size
+    // (which is '{}')", index, size()));
   }
   return operator[](index);
 }
@@ -407,3 +317,113 @@ const T& Deque<T>::operator[](size_t index) const {
   return *(buckets_[absolute_index / kBucketSize] +
            (absolute_index % kBucketSize));
 }
+
+template <typename T>
+template <bool IsConst>
+class Deque<T>::BasicIterator {
+ public:
+  using iterator_category = std::random_access_iterator_tag;
+  using difference_type = size_t;
+  using value_type = std::conditional_t<IsConst, const T, T>;
+  using pointer = value_type*;
+  using reference = value_type&;
+
+  BasicIterator(Deque<T>& deque, size_t index) : deque_(deque), index_(index){};
+
+  BasicIterator(const BasicIterator& iterator)
+      : deque_(iterator.deque_), index_(iterator.index_){};
+
+  BasicIterator& operator=(const BasicIterator& iterator) {
+    deque_ = iterator.deque_;
+    index_ = iterator.index_;
+    return (*this);
+  };
+
+  reference operator*() const {
+    return *(deque_.buckets_[index_ / kBucketSize] + (index_ % kBucketSize));
+  }
+
+  pointer operator->() const { return &(operator*()); }
+
+  BasicIterator& operator-=(int n) {
+    index_ -= n;
+    return *this;
+  }
+
+  BasicIterator& operator+=(int n) {
+    index_ = (index_ + n) % (deque_.buckets_amount_ * kBucketSize + 1);
+    return *this;
+  }
+
+  BasicIterator operator-(int n) const {
+    auto copy = *this;
+    copy -= n;
+
+    return copy;
+  }
+
+  BasicIterator operator+(int n) const {
+    auto copy = *this;
+    copy += n;
+
+    return copy;
+  }
+
+  BasicIterator operator++(int) {
+    BasicIterator tmp = *this;
+    ++(*this);
+    return tmp;
+  }
+
+  BasicIterator& operator++() {
+    index_ += 1;
+    return *this;
+  }
+
+  BasicIterator operator--(int) {
+    BasicIterator tmp = *this;
+    --(*this);
+    return tmp;
+  }
+
+  BasicIterator& operator--() {
+    --index_;
+    return *this;
+  }
+
+  bool operator==(const BasicIterator& other) const {
+    return index_ == other.index_;
+  }
+
+  bool operator!=(const BasicIterator& other) const {
+    return !((*this) == other);
+  }
+
+  bool operator<(const BasicIterator& other) const {
+    return get_relative() < other.get_relative();
+  }
+
+  bool operator>(const BasicIterator& other) const { return other < (*this); }
+
+  bool operator>=(const BasicIterator& other) const {
+    return !(other > (*this));
+  }
+
+  bool operator<=(const BasicIterator& other) const {
+    return !(other < (*this));
+  }
+
+  difference_type operator-(BasicIterator other) {
+    return index_ - other.index_;
+  }
+
+ private:
+  size_t get_relative() const {
+    return (index_ - deque_.start_shift_ +
+            deque_.buckets_amount_ * kBucketSize + 1) %
+           (deque_.buckets_amount_ * kBucketSize + 1);
+  }
+
+  Deque<T>& deque_;
+  size_t index_;
+};
