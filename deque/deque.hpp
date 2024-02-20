@@ -89,7 +89,7 @@ class Deque {
     return init_any_bucket(bucket_index, buckets_);
   };
 
-  void init_any_bucket(size_t bucket_index, std::vector<bucket>& buckets);
+  void init_any_bucket(size_t bucket_index, std::vector<bucket>& buckets) const;
 
   size_t get_absolute(size_t index) const {
     return (start_shift_ + index + kBucketSize * buckets_amount_) %
@@ -179,10 +179,15 @@ void Deque<T>::reallocate_buckets() {
   size_t start_bucket = start_shift_ / kBucketSize;
   if (start_shift_ % kBucketSize != 0 &&
       size_ == kBucketSize * buckets_amount_) {
-    init_any_bucket(now, new_buckets);
-    std::uninitialized_copy(buckets_[start_bucket] + start_shift_ % kBucketSize,
-                            buckets_[start_bucket] + kBucketSize,
-                            new_buckets[now++] + start_shift_ % kBucketSize);
+    try {
+      init_any_bucket(now, new_buckets);
+      std::uninitialized_copy(buckets_[start_bucket] + start_shift_ % kBucketSize,
+                              buckets_[start_bucket] + kBucketSize,
+                              new_buckets[now++] + start_shift_ % kBucketSize);
+    } catch (...) {
+      delete[] new_buckets[now - 1];
+      throw;
+    }
     new_buckets[buckets_amount_] = buckets_[start_bucket];
     start_shift_ %= kBucketSize;
   } else if (buckets_amount_ != 0) {
@@ -202,7 +207,7 @@ void Deque<T>::reallocate_buckets() {
 
 template <typename T>
 void Deque<T>::init_any_bucket(size_t bucket_index,
-                               std::vector<bucket>& buckets) {
+                               std::vector<bucket>& buckets) const {
   if (buckets[bucket_index] == nullptr) {
     buckets[bucket_index] =
         reinterpret_cast<T*>(new std::byte[sizeof(T) * kBucketSize]);
