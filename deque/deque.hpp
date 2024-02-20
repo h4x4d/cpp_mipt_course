@@ -19,7 +19,7 @@ class Deque {
 
   Deque() = default;
 
-  explicit Deque(size_t count) : Deque(count, T()){};
+  explicit Deque(size_t count) : Deque(count, T()) {};
 
   Deque(size_t count, const T& value);
 
@@ -141,12 +141,11 @@ void Deque<T>::push_front(const T& value) {
 
   size_t absolute_index = get_absolute(-1);
   size_t bucket = absolute_index / kBucketSize;
-  size_t local_index = absolute_index % kBucketSize;
 
   if (buckets_[bucket] == nullptr) {
     init_bucket(bucket);
   }
-  new (&operator[](-1)) T(value);
+  new(&operator[](-1)) T(value);
   start_shift_ = absolute_index;
   size_++;
 }
@@ -159,13 +158,12 @@ void Deque<T>::push_back(const T& value) {
 
   size_t absolute_index = get_absolute(size_);
   size_t bucket = absolute_index / kBucketSize;
-  size_t local_index = absolute_index % kBucketSize;
 
   if (buckets_[bucket] == nullptr) {
     init_bucket(bucket);
   }
 
-  new (&operator[](size())) T(value);
+  new(&operator[](size())) T(value);
   size_++;
 }
 
@@ -182,9 +180,9 @@ void Deque<T>::reallocate_buckets() {
   if (start_shift_ % kBucketSize != 0 &&
       size_ == kBucketSize * buckets_amount_) {
     init_any_bucket(now, new_buckets);
-    std::copy(buckets_[start_bucket] + start_shift_ % kBucketSize,
-              buckets_[start_bucket] + kBucketSize,
-              new_buckets[now++] + start_shift_ % kBucketSize);
+    std::uninitialized_copy(buckets_[start_bucket] + start_shift_ % kBucketSize,
+                            buckets_[start_bucket] + kBucketSize,
+                            new_buckets[now++] + start_shift_ % kBucketSize);
     new_buckets[buckets_amount_] = buckets_[start_bucket];
     start_shift_ %= kBucketSize;
   } else if (buckets_amount_ != 0) {
@@ -270,7 +268,7 @@ Deque<T>::Deque(size_t count, const T& value) : size_(count) {
     try {
       init_bucket(i);
       for (size_t j = 0; j < kBucketSize; ++j) {
-        new (buckets_[i] + j) T(value);
+        new(buckets_[i] + j) T(value);
       }
       count -= std::min(count, kBucketSize);
     } catch (...) {
@@ -328,10 +326,10 @@ class Deque<T>::BasicIterator {
   using pointer = value_type*;
   using reference = value_type&;
 
-  BasicIterator(Deque<T>& deque, size_t index) : deque_(deque), index_(index){};
+  BasicIterator(Deque<T>& deque, size_t index) : deque_(deque), index_(index) {};
 
   BasicIterator(const BasicIterator& iterator)
-      : deque_(iterator.deque_), index_(iterator.index_){};
+      : deque_(iterator.deque_), index_(iterator.index_) {};
 
   BasicIterator& operator=(const BasicIterator& iterator) {
     deque_ = iterator.deque_;
