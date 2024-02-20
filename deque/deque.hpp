@@ -19,7 +19,7 @@ class Deque {
 
   Deque() = default;
 
-  explicit Deque(size_t count) : Deque(count, T()) {};
+  explicit Deque(size_t count) : Deque(count, T()){};
 
   Deque(size_t count, const T& value);
 
@@ -145,7 +145,7 @@ void Deque<T>::push_front(const T& value) {
   if (buckets_[bucket] == nullptr) {
     init_bucket(bucket);
   }
-  new(&operator[](-1)) T(value);
+  new (&operator[](-1)) T(value);
   start_shift_ = absolute_index;
   size_++;
 }
@@ -163,7 +163,7 @@ void Deque<T>::push_back(const T& value) {
     init_bucket(bucket);
   }
 
-  new(&operator[](size())) T(value);
+  new (&operator[](size())) T(value);
   size_++;
 }
 
@@ -268,7 +268,7 @@ Deque<T>::Deque(size_t count, const T& value) : size_(count) {
     try {
       init_bucket(i);
       for (size_t j = 0; j < kBucketSize; ++j) {
-        new(buckets_[i] + j) T(value);
+        new (buckets_[i] + j) T(value);
       }
       count -= std::min(count, kBucketSize);
     } catch (...) {
@@ -326,10 +326,10 @@ class Deque<T>::BasicIterator {
   using pointer = value_type*;
   using reference = value_type&;
 
-  BasicIterator(Deque<T>& deque, size_t index) : deque_(deque), index_(index) {};
+  BasicIterator(Deque<T>& deque, size_t index) : deque_(deque), index_(index){};
 
   BasicIterator(const BasicIterator& iterator)
-      : deque_(iterator.deque_), index_(iterator.index_) {};
+      : deque_(iterator.deque_), index_(iterator.index_){};
 
   BasicIterator& operator=(const BasicIterator& iterator) {
     deque_ = iterator.deque_;
