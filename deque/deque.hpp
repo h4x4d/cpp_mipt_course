@@ -181,9 +181,10 @@ void Deque<T>::reallocate_buckets() {
       size_ == kBucketSize * buckets_amount_) {
     try {
       init_any_bucket(now, new_buckets);
-      std::uninitialized_copy(buckets_[start_bucket] + start_shift_ % kBucketSize,
-                              buckets_[start_bucket] + kBucketSize,
-                              new_buckets[now++] + start_shift_ % kBucketSize);
+      std::uninitialized_copy(
+          buckets_[start_bucket] + start_shift_ % kBucketSize,
+          buckets_[start_bucket] + kBucketSize,
+          new_buckets[now++] + start_shift_ % kBucketSize);
     } catch (...) {
       delete[] new_buckets[now - 1];
       throw;
