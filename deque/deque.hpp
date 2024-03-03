@@ -333,10 +333,16 @@ class Deque<T>::BasicIterator {
   using reference = value_type&;
 
   BasicIterator(Deque<T>& deque, size_t index)
-      : buckets_(&deque.buckets_.front()), index_(index), start_shift_(deque.start_shift_), buckets_size_(deque.buckets_amount_) {};
+      : buckets_(&deque.buckets_.front()),
+        index_(index),
+        start_shift_(deque.start_shift_),
+        buckets_size_(deque.buckets_amount_){};
 
   BasicIterator(const BasicIterator& iterator)
-      : buckets_(iterator.buckets_), index_(iterator.index_), start_shift_(iterator.start_shift_), buckets_size_(iterator.buckets_size_) {};
+      : buckets_(iterator.buckets_),
+        index_(iterator.index_),
+        start_shift_(iterator.start_shift_),
+        buckets_size_(iterator.buckets_size_){};
 
   BasicIterator& operator=(const BasicIterator& iterator) {
     buckets_ = iterator.buckets_;
@@ -426,8 +432,7 @@ class Deque<T>::BasicIterator {
 
  private:
   size_t get_relative() const {
-    return (index_ + start_shift_ +
-            buckets_size_ * kBucketSize + 1) %
+    return (index_ + start_shift_ + buckets_size_ * kBucketSize + 1) %
            (buckets_size_ * kBucketSize + 1);
   }
 
