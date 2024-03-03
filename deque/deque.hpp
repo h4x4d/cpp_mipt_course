@@ -332,19 +332,22 @@ class Deque<T>::BasicIterator {
   using pointer = value_type*;
   using reference = value_type&;
 
-  BasicIterator(Deque<T>& deque, size_t index) : deque_(deque), index_(index){};
+  BasicIterator(Deque<T>& deque, size_t index)
+      : buckets_(&deque.buckets_.front()), index_(index), start_shift_(deque.start_shift_), buckets_size_(deque.buckets_amount_) {};
 
   BasicIterator(const BasicIterator& iterator)
-      : deque_(iterator.deque_), index_(iterator.index_){};
+      : buckets_(iterator.buckets_), index_(iterator.index_), start_shift_(iterator.start_shift_), buckets_size_(iterator.buckets_size_) {};
 
   BasicIterator& operator=(const BasicIterator& iterator) {
-    deque_ = iterator.deque_;
+    buckets_ = iterator.buckets_;
     index_ = iterator.index_;
+    start_shift_ = iterator.start_shift_;
+    buckets_size_ = iterator.buckets_size_;
     return (*this);
   };
 
   reference operator*() const {
-    return *(deque_.buckets_[index_ / kBucketSize] + (index_ % kBucketSize));
+    return *(*(buckets_ + index_ / kBucketSize) + (index_ % kBucketSize));
   }
 
   pointer operator->() const { return &(operator*()); }
@@ -355,7 +358,7 @@ class Deque<T>::BasicIterator {
   }
 
   BasicIterator& operator+=(int n) {
-    index_ = (index_ + n) % (deque_.buckets_amount_ * kBucketSize + 1);
+    index_ = (index_ + n) % (buckets_size_ * kBucketSize + 1);
     return *this;
   }
 
@@ -423,11 +426,13 @@ class Deque<T>::BasicIterator {
 
  private:
   size_t get_relative() const {
-    return (index_ - deque_.start_shift_ +
-            deque_.buckets_amount_ * kBucketSize + 1) %
-           (deque_.buckets_amount_ * kBucketSize + 1);
+    return (index_ + start_shift_ +
+            buckets_size_ * kBucketSize + 1) %
+           (buckets_size_ * kBucketSize + 1);
   }
 
-  Deque<T>& deque_;
+  T** buckets_;
   size_t index_;
+  size_t& start_shift_;
+  size_t& buckets_size_;
 };
