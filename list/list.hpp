@@ -16,7 +16,7 @@ class List {
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-  List();
+  List() = default;
 
   explicit List(size_t count, const Allocator& allocator = Allocator());
 
@@ -79,8 +79,6 @@ class List {
  private:
   void clear_list();
 
-  void init_fake_node();
-
   struct BaseNode;
 
   struct Node;
@@ -99,7 +97,6 @@ class List {
 template <typename T, typename Allocator>
 List<T, Allocator>::List(size_t count, const Allocator& allocator)
     : allocator_(allocator) {
-  init_fake_node();
   try {
     for (size_t i = 0; i < count; ++i) {
       Node* created_element = node_allocator_traits::allocate(allocator_, 1);
@@ -123,12 +120,6 @@ List<T, Allocator>::List(size_t count, const Allocator& allocator)
     clear_list();
     throw;
   }
-}
-
-template <typename T, typename Allocator>
-void List<T, Allocator>::init_fake_node() {
-  fake_node_.prev = &fake_node_;
-  fake_node_.next = &fake_node_;
 }
 
 template <typename T, typename Allocator>
@@ -237,15 +228,9 @@ List<T, Allocator>& List<T, Allocator>::operator=(const List& other) {
 }
 
 template <typename T, typename Allocator>
-List<T, Allocator>::List() {
-  init_fake_node();
-}
-
-template <typename T, typename Allocator>
 List<T, Allocator>::List(size_t count, const T& value,
                          const Allocator& allocator)
     : allocator_(allocator) {
-  init_fake_node();
   try {
     for (size_t i = 0; i < count; ++i) {
       push_back(value);
@@ -260,7 +245,6 @@ template <typename T, typename Allocator>
 List<T, Allocator>::List(const List& other)
     : allocator_(node_allocator_traits::select_on_container_copy_construction(
           other.allocator_)) {
-  init_fake_node();
   try {
     for (auto iter = other.cbegin(); iter != other.cend(); ++iter) {
       push_back(*iter);
@@ -274,7 +258,6 @@ template <typename T, typename Allocator>
 List<T, Allocator>::List(std::initializer_list<T> init,
                          const Allocator& allocator)
     : allocator_(allocator) {
-  init_fake_node();
   for (auto iter = init.begin(); iter != init.end(); ++iter) {
     push_back(*iter);
   }
@@ -285,8 +268,8 @@ struct List<T, Allocator>::BaseNode {
   BaseNode() = default;
   BaseNode(BaseNode* prev, BaseNode* next) : prev(prev), next(next){};
 
-  BaseNode* prev = nullptr;
-  BaseNode* next = nullptr;
+  BaseNode* prev{this};
+  BaseNode* next{this};
 };
 
 template <typename T, typename Allocator>
