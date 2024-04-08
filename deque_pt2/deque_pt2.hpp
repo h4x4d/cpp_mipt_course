@@ -135,9 +135,9 @@ class Deque {
 
 template <typename T, typename Allocator>
 Deque<T, Allocator>::Deque(size_t count, const Allocator& allocator)
-    : allocator_(allocator) {
-  buckets_amount_ = std::ceil(count / static_cast<double>(kBucketSize));
-  buckets_.resize(buckets_amount_);
+    : allocator_(allocator),
+      buckets_amount_(std::ceil(count / static_cast<double>(kBucketSize))),
+      buckets_(buckets_amount_, allocator_) {
   try {
     for (size_t i = 0; i < buckets_amount_; ++i) {
       init_bucket(i);
@@ -184,7 +184,7 @@ void Deque<T, Allocator>::pop_back() {
 template <typename T, typename Allocator>
 void Deque<T, Allocator>::erase(Deque::iterator iter) {
   for (; iter + 1 != end(); ++iter) {
-    *iter = *(iter + 1);
+    *iter = std::move(*(iter + 1));
   }
   pop_back();
 }
@@ -192,9 +192,8 @@ void Deque<T, Allocator>::erase(Deque::iterator iter) {
 template <typename T, typename Allocator>
 void Deque<T, Allocator>::insert(Deque::iterator iter, const T& value) {
   T last_value = value;
-  for (; iter != end(); iter++) {
+  for (; iter != end(); ++iter) {
     std::swap(last_value, *iter);
-    iter++;
   }
   push_back(last_value);
 }
