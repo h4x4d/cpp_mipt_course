@@ -232,8 +232,9 @@ WeakPtr<T>& WeakPtr<T>::operator=(WeakPtr&& other) {
 template <typename T, typename Allocator, typename... Args>
 SharedPtr<T> AllocateShared(const Allocator& allocator, Args&&... args) {
   using Traits = std::allocator_traits<Allocator>;
-  auto block_alloc = (typename Traits::template rebind_alloc<
-                      AllocateSharedControlBlock<T, Allocator>>)(allocator);
+  using BlockAlloc =
+      Traits::template rebind_alloc<AllocateSharedControlBlock<T, Allocator>>;
+  BlockAlloc block_alloc(allocator);
   using BlockTraits = std::allocator_traits<decltype(block_alloc)>;
 
   auto* block = BlockTraits::allocate(block_alloc, 1);
