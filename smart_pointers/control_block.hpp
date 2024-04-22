@@ -65,8 +65,9 @@ struct AllocatorControlBlock : BaseControlBlock<T> {
   }
 
   void no_weak_and_shared() override {
-    auto block_allocator = (typename std::allocator_traits<Allocator>::template rebind_alloc<
-        AllocatorControlBlock>)(allocator);
+    using BlockAlloc = std::allocator_traits<Allocator>::
+        template rebind_alloc<AllocatorControlBlock>;
+    BlockAlloc block_allocator(allocator);
     std::allocator_traits<decltype(block_allocator)>::destroy(block_allocator, this);
     std::allocator_traits<decltype(block_allocator)>::deallocate(block_allocator, this, 1);
   }
@@ -91,9 +92,9 @@ struct AllocateSharedControlBlock :
   }
 
   void no_weak_and_shared() override {
-    auto block_allocator =
-        (typename std::allocator_traits<Allocator>::template rebind_alloc<
-            AllocateSharedControlBlock>)(BaseClass::allocator);
+    using BlockAlloc = std::allocator_traits<Allocator>::
+        template rebind_alloc<AllocateSharedControlBlock>;
+    BlockAlloc block_allocator(BaseClass::allocator);
     std::allocator_traits<
         decltype(block_allocator)>::deallocate(block_allocator,this, 1);
   }
