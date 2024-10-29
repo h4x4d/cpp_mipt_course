@@ -5,16 +5,15 @@
 String::String(unsigned size, char character)
     : size_(size), capacity_(size + 1), string_(new char[capacity_]) {
   std::fill(string_, string_ + size_, character);
-  string_[capacity_ - 1] = '\0';
+  string_[size_] = '\0';
 }
 
 String::String(const char* string, int size, int capacity)
-    : size_(size), capacity_(capacity), string_(new char[capacity_]) {
+    : size_(size),
+      capacity_(capacity > 0 && capacity != size ? capacity : capacity + 1),
+      string_(new char[capacity_]) {
   std::copy(string, string + size_, string_);
-  if (capacity_ == 0 || capacity_ == size_) {
-    ChangeCapacity(capacity_ + 1);
-  }
-  string_[capacity_ - 1] = '\0';
+  string_[size_] = '\0';
 }
 
 String::String(const char* string)
@@ -27,7 +26,7 @@ bool String::Empty() const { return size_ == 0; }
 
 size_t String::Size() const { return size_; }
 
-size_t String::Capacity() const { return capacity_; }
+size_t String::Capacity() const { return capacity_ > 0 ? capacity_ - 1 : 0; }
 
 char* String::Data() { return string_; }
 
@@ -45,9 +44,8 @@ String& String::operator=(const String& other) {
   if (this == &other) {
     return *this;
   }
-  ChangeCapacity(other.size_);
-  size_ = other.size_;
-  std::copy(other.string_, other.string_ + size_, string_);
+  String temp = other;
+  Swap(temp);
   return *this;
 }
 
@@ -65,45 +63,49 @@ void String::ChangeCapacity(size_t new_capacity) {
 }
 
 void String::PushBack(char character) {
-  if (capacity_ < size_ + 1) {
-    ChangeCapacity(capacity_ > 0 ? capacity_ * 2 : 1);
+  if (capacity_ < size_ + 2) {
+    ChangeCapacity(capacity_ > 0 ? capacity_ * 2 : 2);
   }
   size_ += 1;
   string_[size_ - 1] = character;
+  string_[size_] = '\0';
 }
 
 void String::PopBack() {
   if (size_ > 0) {
-    size_ -= 1;
+    string_[--size_] = '\0';
   }
 }
 
 void String::Resize(size_t new_size) {
   if (new_size > capacity_) {
-    ChangeCapacity(new_size);
+    ChangeCapacity(new_size + 1);
   }
   size_ = new_size;
+  string_[size_] = '\0';
 }
 
 void String::Resize(size_t new_size, char character) {
   if (new_size > capacity_) {
-    ChangeCapacity(new_size);
+    ChangeCapacity(new_size + 1);
   }
   if (new_size > size_) {
     std::fill(string_ + size_, string_ + new_size, character);
   }
   size_ = new_size;
+  string_[size_] = '\0';
 }
 
 void String::Reserve(size_t new_cap) {
-  if (new_cap > capacity_) {
-    ChangeCapacity(new_cap);
+  if (new_cap + 1 > capacity_) {
+    ChangeCapacity(new_cap + 1);
   }
 }
 
 void String::ShrinkToFit() {
   if (capacity_ > size_) {
-    ChangeCapacity(size_);
+    ChangeCapacity(size_ + 1);
+    string_[size_] = '\0';
   }
 }
 
@@ -114,11 +116,12 @@ void String::Swap(String& other) {
 }
 
 String& String::operator+=(const String& other) {
-  if (capacity_ < size_ + other.size_) {
-    ChangeCapacity(size_ + other.size_);
+  if (capacity_ < size_ + other.size_ + 1) {
+    ChangeCapacity(size_ + other.size_ + 1);
   }
   std::copy(other.string_, other.string_ + other.size_, (string_ + size_));
   size_ += other.size_;
+  string_[size_] = '\0';
   return *this;
 }
 
@@ -129,14 +132,15 @@ String operator+(const String& first, const String& other) {
 }
 
 String& String::operator*=(int number) {
-  char* new_string = new char[size_ * number];
+  char* new_string = new char[size_ * number + 1];
   for (unsigned i = 0; i < size_ * number; ++i) {
     new_string[i] = string_[i % size_];
   }
   delete[] string_;
   string_ = new_string;
   size_ *= number;
-  capacity_ = size_;
+  capacity_ = size_ + 1;
+  string_[size_] = '\0';
   return *this;
 }
 
@@ -176,11 +180,8 @@ char String::operator[](int idx) const { return string_[idx]; }
 bool operator<(const String& first, const String& second) {
   unsigned size = first.Size() > second.Size() ? second.Size() : first.Size();
   for (unsigned i = 0; i < size; ++i) {
-    if (first[i] < second[i]) {
-      return true;
-    }
-    if (first[i] > second[i]) {
-      return false;
+    if (first[i] != second[i]) {
+      return first[i] < second[i];
     }
   }
   return first.Size() < second.Size();
