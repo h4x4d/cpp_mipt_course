@@ -78,11 +78,7 @@ void String::PopBack() {
 }
 
 void String::Resize(size_t new_size) {
-  if (new_size > capacity_) {
-    ChangeCapacity(new_size + 1);
-  }
-  size_ = new_size;
-  string_[size_] = '\0';
+  Resize(new_size, '\0');
 }
 
 void String::Resize(size_t new_size, char character) {
@@ -132,14 +128,11 @@ String operator+(const String& first, const String& other) {
 }
 
 String& String::operator*=(int number) {
-  char* new_string = new char[size_ * number + 1];
+  ChangeCapacity(size_ * number + 1);
   for (unsigned i = 0; i < size_ * number; ++i) {
-    new_string[i] = string_[i % size_];
+    string_[i] = string_[i % size_];
   }
-  delete[] string_;
-  string_ = new_string;
   size_ *= number;
-  capacity_ = size_ + 1;
   string_[size_] = '\0';
   return *this;
 }
@@ -158,7 +151,7 @@ std::ostream& operator<<(std::ostream& os, const String& string) {
 std::istream& operator>>(std::istream& is, String& string) {
   char symbol;
   while (is.get(symbol)) {
-    if ((symbol == ' ' || symbol == '\n')) {
+    if ((std::isspace(symbol) != 0 || symbol == '\n')) {
       if (!string.Empty()) {
         break;
       }
@@ -169,7 +162,12 @@ std::istream& operator>>(std::istream& is, String& string) {
   return is;
 }
 
-void String::Clear() { size_ = 0; }
+void String::Clear() {
+  size_ = 0;
+  if (capacity_ > 0) {
+    string_[size_] = '\0';
+  }
+}
 
 String::~String() { delete[] string_; }
 
